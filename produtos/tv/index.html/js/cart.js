@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      window.location.href = resolveUrl('https://promo-ml-25anos.shop/checkout/index.html') + getUTMQueryString();
+      window.location.href = resolveUrl('/checkout/index.html') + getUTMQueryString();
     }
 
     buyBtn.addEventListener('click', function(e) {

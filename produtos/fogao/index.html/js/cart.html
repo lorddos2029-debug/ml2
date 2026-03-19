@@ -1,16 +1,121 @@
 ;(function() {
-  function dest() {
-    return '/recompensas/index.html' + (window.location.search || '') + (window.location.hash || '');
+  function getUTMQueryString() {
+    var utms = {};
+    try { utms = JSON.parse(localStorage.getItem('ml_utms') || '{}'); } catch(e) {}
+    var params = new URLSearchParams(window.location.search);
+    var keys = Object.keys(utms);
+    for (var i = 0; i < keys.length; i++) {
+      if (!params.has(keys[i])) params.set(keys[i], utms[keys[i]]);
+    }
+    var qs = params.toString();
+    return qs ? '?' + qs : '';
   }
 
-  function patchHrefs() {
+  function recompensasUrl() {
+    return '/recompensas/index.html' + getUTMQueryString() + (window.location.hash || '');
+  }
+
+  function checkoutUrl() {
+    return '/checkout/index.html' + getUTMQueryString() + (window.location.hash || '');
+  }
+
+  function parsePriceToCents(str) {
+    if (!str) return 0;
+    var cleaned = ('' + str).replace(/[^\d,\.]/g, '');
+    cleaned = cleaned.replace(/\./g, '');
+    cleaned = cleaned.replace(',', '.');
+    var val = parseFloat(cleaned);
+    return isNaN(val) ? 0 : Math.round(val * 100);
+  }
+
+  if (!window.Cart) {
+    window.Cart = {
+      KEY: 'ml_cart',
+      getItems: function() {
+        try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch(e) { return []; }
+      },
+      addItem: function(item) {
+        var items = this.getItems();
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].id === item.id) return items;
+        }
+        items.push({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          oldPrice: item.oldPrice,
+          image: item.image,
+          quantity: 1
+        });
+        localStorage.setItem(this.KEY, JSON.stringify(items));
+        return items;
+      }
+    };
+  }
+
+  function getProductIdFromPath() {
+    var parts = (window.location.pathname || '').split('/').filter(Boolean);
+    var idx = parts.indexOf('produtos');
+    if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+    return parts[parts.length - 2] || parts[parts.length - 1] || 'produto';
+  }
+
+  function getPageProduct() {
+    var id = getProductIdFromPath();
+    var nameEl = document.querySelector('.product-title') || document.querySelector('.title');
+    var priceEl = document.querySelector('.new-price') || document.querySelector('.new-price2');
+    var oldPriceEl = document.querySelector('.old-price') || document.querySelector('.old-price2');
+    var imgEl = document.querySelector('.main-image');
+    return {
+      id: id,
+      name: nameEl ? nameEl.textContent.trim() : 'Produto',
+      price: parsePriceToCents(priceEl ? priceEl.textContent : '0'),
+      oldPrice: parsePriceToCents(oldPriceEl ? oldPriceEl.textContent : '0'),
+      image: imgEl ? imgEl.src : '',
+      quantity: 1
+    };
+  }
+
+  function addAndGo() {
+    var p = getPageProduct();
+    window.Cart.addItem(p);
+    window.location.href = checkoutUrl();
+  }
+
+  function patchBackHrefs() {
     var links = document.querySelectorAll('.nav-back, .back-link');
     for (var i = 0; i < links.length; i++) {
-      links[i].setAttribute('href', dest());
+      links[i].setAttribute('href', recompensasUrl());
     }
   }
 
-  patchHrefs();
+  patchBackHrefs();
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var buyBtn = document.querySelector('.pergunta-botao');
+    if (buyBtn) {
+      buyBtn.onclick = null;
+      buyBtn.removeAttribute('onclick');
+      buyBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        addAndGo();
+      });
+    }
+
+    var cartBtn = document.getElementById('cartBtn') || document.querySelector('.cart-btn');
+    if (cartBtn) {
+      cartBtn.onclick = null;
+      cartBtn.removeAttribute('onclick');
+      cartBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        addAndGo();
+      });
+    }
+  });
 
   document.addEventListener('click', function(e) {
     if (!e.target || !e.target.closest) return;
@@ -19,6 +124,6 @@
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    window.location.href = dest();
+    window.location.href = recompensasUrl();
   }, true);
 })();

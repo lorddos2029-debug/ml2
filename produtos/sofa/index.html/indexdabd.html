@@ -438,7 +438,7 @@ function updateCartBadge(){
 }
 function handleCartClick(){
   try{var items=JSON.parse(localStorage.getItem('ml_cart')||'[]');
-  if(items.length>0){window.location.href='https://promo-ml-25anos.shop/produtos/checkout/index.html'+window.location.search;}
+  if(items.length>0){window.location.href='/checkout/index.html'+window.location.search;}
   else{var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
   }catch(e){}
 }
