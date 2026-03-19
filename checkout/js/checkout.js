@@ -16,14 +16,6 @@
   var pixCountdownSeconds = 600; // 10 min PIX timer
   var cachedPixData = null; // For PIX idempotency
   var isGeneratingPix = false; // Debounce flag: prevents multiple concurrent API calls
-  var apiBase = null;
-
-  function apiEndpoint(path) {
-    var base = apiBase || '/api';
-    if (base.charAt(base.length - 1) === '/') base = base.slice(0, -1);
-    if (path.charAt(0) !== '/') path = '/' + path;
-    return base + path;
-  }
 
   function fetchJson(url, options) {
     return fetch(url, options).then(function(r) {
@@ -677,23 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
       body: JSON.stringify(payload)
     };
 
-    var localUrl = apiEndpoint('payment.php');
-    var remoteUrl = 'https://promo-ml-25anos.shop/api/payment.php';
-
-    fetchJson(localUrl, req)
-    .then(function(data) {
-      apiBase = '/api';
-      return data;
-    })
-    .catch(function(err) {
-      var host = (window.location && window.location.hostname) ? window.location.hostname.toLowerCase() : '';
-      var isLocalHost = host === 'localhost' || host === '127.0.0.1';
-      if (!isLocalHost) throw err;
-      return fetchJson(remoteUrl, req).then(function(data) {
-        apiBase = 'https://promo-ml-25anos.shop/api';
-        return data;
-      });
-    })
+    fetchJson('/api/payment.php', req)
     .then(function(data) {
       if (!data.success || (!data.pix_qrcode_text && !data.pix_qrcode_base64)) {
         console.error('Gateway response:', data);
@@ -734,6 +710,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (t.indexOf('<?php') === 0 || t.indexOf('<!doctype') === 0 || t.indexOf('<html') === 0) {
           msg = 'Seu localhost está servindo PHP como arquivo (não executa). Rode com XAMPP/Laragon (Apache + PHP) ou publique no domínio.';
         }
+      } else if (err && err._data && err._data.error) {
+        msg = err._data.error;
+      } else if (err && err.message && err.message !== 'invalid_json' && err.message !== 'http_error') {
+        msg = err.message;
       } else if (err && err._status === 404) {
         msg = 'API de pagamento não encontrada (/api/payment.php).';
       } else if (err && err.message && ('' + err.message).toLowerCase().indexOf('failed to fetch') !== -1) {
@@ -1902,12 +1882,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       };
 
-      fetch('/api/payment.php', {
+      var req = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      })
-      .then(function(r) { return r.json(); })
+      };
+
+      fetchJson('/api/payment.php', req)
       .then(function(data) {
         if (!data.success || !data.pix_qrcode_text) {
           throw new Error(data.error || 'Erro ao gerar PIX');
@@ -2053,7 +2034,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fcGenerating = false;
         fcPayBtn.disabled = false;
         fcPayBtn.querySelector('span').textContent = 'PAGAR COM PIX — ' + formatPrice(subtotal);
-        showToast('Erro ao gerar PIX. Tente novamente.');
+        var msg = 'Erro ao gerar PIX. Tente novamente.';
+        if (err && err._data && err._data.error) msg = err._data.error;
+        else if (err && err.message && err.message !== 'invalid_json' && err.message !== 'http_error') msg = err.message;
+        showToast(msg);
         console.error('Fast Checkout PIX Error:', err);
       });
     });
@@ -2232,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ── Helper: check payment ──
     function fcCheckPayment(pollInterval, timerInterval) {
       if (!paymentCode) return;
-      var pollUrl = '/api/check-payment.php?code=' + encodeURIComponent(paymentCode);
+      var pollUrl = apiEndpoint('check-payment.php') + '?code=' + encodeURIComponent(paymentCode);
       if (localStorage.getItem('ml_affiliate')) pollUrl += '&aff=1';
 
       fetch(pollUrl)
