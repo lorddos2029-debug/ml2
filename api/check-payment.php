@@ -153,16 +153,25 @@ function notify_event($event, $ctx) {
         $v = trim(substr($v, 1, -1));
       }
     }
+    if (strlen($v) >= 4 && substr($v, 0, 2) === '__' && substr($v, -2) === '__') {
+      $v = trim(substr($v, 2, -2));
+    }
     return $v;
   };
 
   $utmifyToken = $normalize(getenv('UTMIFY_API_TOKEN'));
+  if ($utmifyToken === '' && isset($_SERVER['UTMIFY_API_TOKEN'])) $utmifyToken = $normalize($_SERVER['UTMIFY_API_TOKEN']);
+  if ($utmifyToken === '' && isset($_ENV['UTMIFY_API_TOKEN'])) $utmifyToken = $normalize($_ENV['UTMIFY_API_TOKEN']);
   if ($utmifyToken === '') $utmifyToken = $normalize(getenv('UTMIFY_TOKEN'));
+  if ($utmifyToken === '' && isset($_SERVER['UTMIFY_TOKEN'])) $utmifyToken = $normalize($_SERVER['UTMIFY_TOKEN']);
+  if ($utmifyToken === '' && isset($_ENV['UTMIFY_TOKEN'])) $utmifyToken = $normalize($_ENV['UTMIFY_TOKEN']);
 
   if ($utmifyToken !== '') {
     if (!is_array($ctx)) $ctx = [];
 
     $platform = $normalize(getenv('UTMIFY_PLATFORM'));
+    if ($platform === '' && isset($_SERVER['UTMIFY_PLATFORM'])) $platform = $normalize($_SERVER['UTMIFY_PLATFORM']);
+    if ($platform === '' && isset($_ENV['UTMIFY_PLATFORM'])) $platform = $normalize($_ENV['UTMIFY_PLATFORM']);
     if ($platform === '') $platform = 'ShopPegou';
 
     $status = null;

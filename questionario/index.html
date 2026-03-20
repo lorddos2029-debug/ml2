@@ -2,6 +2,9 @@
 <!-- Mirrored from promo-ml-25anos.shop/questionario/ by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 19 Mar 2026 16:40:42 GMT -->
 <head>
 <meta charset="UTF-8">
+<script>
+(function(){var p=location.pathname||'';if(p&&p.slice(-1)!=='/'&&!/\\.[a-z0-9]+$/i.test(p)&&(p.slice(-13)==='/questionario'||p.slice(-7)==='/roleta')){location.replace(p+'/' + location.search + location.hash);}})();
+</script>
 <script
   src="https://cdn.utmify.com.br/scripts/utms/latest.js"
   data-utmify-prevent-xcod-sck
@@ -32,13 +35,13 @@ src="https://www.facebook.com/tr?id=1388988872703996&amp;ev=PageView&amp;noscrip
     <!-- UTM Passthrough -->
     <script>
     var timer = setInterval(function () {
-        const location = new URL(document.location.html);
+        const location = new URL(window.location.href);
         const fields = ["src", "sck", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"];
         var links = document.getElementsByTagName("a");
         for (var i = 0, n = links.length; i < n; i++) {
             if (links[i].href.includes("#")) continue;
             if (links[i].href) {
-                let link = new URL(links%5bi%5d.html);
+                let link = new URL(links[i].href);
                 fields.forEach(field => {
                     if (location.searchParams.get(field))
                         link.searchParams.set(field, location.searchParams.get(field));

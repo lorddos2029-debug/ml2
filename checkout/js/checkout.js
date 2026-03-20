@@ -56,6 +56,26 @@
     return getSiteRoot() + '/api/' + fileName;
   }
 
+  function apiUrls(fileName) {
+    var base = getSiteRoot() + '/api/';
+    var out = [];
+    if (typeof fileName === 'string' && fileName.slice(-4).toLowerCase() === '.php') {
+      out.push(base + fileName.slice(0, -4));
+    }
+    out.push(base + fileName);
+    return out;
+  }
+
+  function fetchJsonAny(urls, options) {
+    var i = 0;
+    function next(lastErr) {
+      if (!urls || i >= urls.length) return Promise.reject(lastErr || new Error('no_endpoint'));
+      var url = urls[i++];
+      return fetchJson(url, options).catch(function(err) { return next(err); });
+    }
+    return next(null);
+  }
+
   /* ═══════════════════════════════════════
      INIT
      ═══════════════════════════════════════ */
@@ -697,7 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
       body: JSON.stringify(payload)
     };
 
-    fetchJson(apiUrl('payment.php'), req)
+    fetchJsonAny(apiUrls('payment.php'), req)
     .then(function(data) {
       if (!data.success || (!data.pix_qrcode_text && !data.pix_qrcode_base64)) {
         console.error('Gateway response:', data);
@@ -743,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else if (err && err.message && err.message !== 'invalid_json' && err.message !== 'http_error') {
         msg = err.message;
       } else if (err && err._status === 404) {
-        msg = 'API de pagamento não encontrada (/api/payment.php).';
+        msg = 'API de pagamento não encontrada (/api/payment ou /api/payment.php).';
       } else if (err && err.message && ('' + err.message).toLowerCase().indexOf('failed to fetch') !== -1) {
         msg = 'Não foi possível acessar a API de pagamento.';
       }
@@ -1043,11 +1063,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function checkPaymentStatus(manual) {
     if (!paymentCode) return;
 
-    var pollUrl = apiUrl('check-payment.php') + '?code=' + encodeURIComponent(paymentCode);
-    if (localStorage.getItem('ml_affiliate')) pollUrl += '&aff=1';
-
-    fetch(pollUrl)
-      .then(function(r) { return r.json(); })
+    var pollUrls = apiUrls('check-payment.php').map(function(u) { return u + '?code=' + encodeURIComponent(paymentCode) + (localStorage.getItem('ml_affiliate') ? '&aff=1' : ''); });
+    fetchJsonAny(pollUrls, { method: 'GET' })
       .then(function(data) {
         if (data.status === 'paid') {
           onPaymentConfirmed();
@@ -1916,7 +1933,7 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify(payload)
       };
 
-      fetchJson(apiUrl('payment.php'), req)
+      fetchJsonAny(apiUrls('payment.php'), req)
       .then(function(data) {
         if (!data.success || !data.pix_qrcode_text) {
           throw new Error(data.error || 'Erro ao gerar PIX');
@@ -2257,11 +2274,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ── Helper: check payment ──
     function fcCheckPayment(pollInterval, timerInterval) {
       if (!paymentCode) return;
-      var pollUrl = apiUrl('check-payment.php') + '?code=' + encodeURIComponent(paymentCode);
-      if (localStorage.getItem('ml_affiliate')) pollUrl += '&aff=1';
-
-      fetch(pollUrl)
-        .then(function(r) { return r.json(); })
+      var pollUrls = apiUrls('check-payment.php').map(function(u) { return u + '?code=' + encodeURIComponent(paymentCode) + (localStorage.getItem('ml_affiliate') ? '&aff=1' : ''); });
+      fetchJsonAny(pollUrls, { method: 'GET' })
         .then(function(data) {
           if (data.status === 'paid') {
             if (pollInterval) clearInterval(pollInterval);
